@@ -9,7 +9,7 @@ base64-converter for chrome-extensions
 mkdir -p <the-local-path>
 cd <the-local-path>
 
-git clone git@github.com:zhangyonglei/chrome-extensions-base64-converter.git
+git clone https://github.com/zhangyonglei/chrome-extensions-base64-converter.git
 ```
 
 * Install the extension
