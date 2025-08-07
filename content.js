@@ -120,7 +120,7 @@ function showPopup(content) {
   // 设置内容 - 使用 div 代替 textarea 以获得更好的自动调整
   popup.innerHTML = `
     <div class="base64-popup-header">
-      <span>Base64 Converter - By Yonglei</span>
+      <span>Base64 Converter - 1.0.1</span>
       <button class="base64-popup-close">&times;</button>
     </div>
     <div class="base64-popup-content">
