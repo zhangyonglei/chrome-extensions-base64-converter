@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Base64 Converter",
   "version": "1.0",
-  "description": "Encode/Decode selected text to/from Base64",
+  "description": "Encode/Decode selected text to/from Base64, by Yonglei Zhang.",
   "permissions": [
     "contextMenus",
     "activeTab",
