@@ -35,7 +35,7 @@ function applyPopupStyles() {
   const style = document.createElement('style');
   style.textContent = `
     .base64-popup {
-      position: absolute;
+      position: fixed;
       z-index: 999999;
       width: 300px;
       background: white;
@@ -204,36 +204,34 @@ function autoResizeContentDisplay(element) {
 }
 
 function positionPopupNearSelection(popup) {
-  // 首先尝试基于鼠标位置定位
-  const mouseX = window.mouseX || 0;
-  const mouseY = window.mouseY || 0;
+  // 弹出窗口使用 position: fixed，因此鼠标位置与选择区域都统一使用视口坐标，
+  // 不再叠加滚动偏移，避免页面滚动后定位偏移。
+  const hasMousePosition =
+    typeof window.base64MouseX === 'number' &&
+    typeof window.base64MouseY === 'number';
 
-  // 如果有有效的鼠标位置，优先使用
-  if (mouseX > 0 && mouseY > 0) {
-    positionPopupAtCoordinates(popup, mouseX, mouseY);
+  // 优先使用鼠标位置
+  if (hasMousePosition) {
+    positionPopupAtCoordinates(popup, window.base64MouseX, window.base64MouseY);
     return;
   }
 
-  // 如果没有鼠标位置，则尝试基于文本选择定位
+  // 没有鼠标位置时，基于文本选择定位
   const selection = window.getSelection();
-  if (!selection.rangeCount) {
-    // 如果没有选中文本，使用默认位置（视口中央）
-    positionPopupAtCenter(popup);
-    return;
+  if (selection && selection.rangeCount) {
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    // 在选中文本下方显示；选区不可见（宽高均为 0）时退化到居中
+    if (rect.width || rect.height) {
+      positionPopupWithViewportCheck(popup, rect.left, rect.bottom + 5);
+      return;
+    }
   }
 
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-
-  // 计算位置（在选中文本下方）
-  const top = rect.bottom + window.scrollY + 5;
-  const left = rect.left + window.scrollX;
-
-  // 确保弹出窗口不会超出视口
-  positionPopupWithViewportCheck(popup, left, top);
+  // 兜底：视口中央偏上位置
+  positionPopupAtCenter(popup);
 }
 
-// 辅助函数：基于坐标定位
+// 辅助函数：基于坐标定位（x、y 均为视口坐标）
 function positionPopupAtCoordinates(popup, x, y) {
   // 添加偏移量，避免被鼠标遮挡
   const offsetX = 10;
@@ -242,7 +240,7 @@ function positionPopupAtCoordinates(popup, x, y) {
   positionPopupWithViewportCheck(popup, x + offsetX, y + offsetY);
 }
 
-// 辅助函数：居中定位
+// 辅助函数：居中定位（视口坐标）
 function positionPopupAtCenter(popup) {
   const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
   const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
@@ -253,32 +251,35 @@ function positionPopupAtCenter(popup) {
   positionPopupWithViewportCheck(popup, left, top);
 }
 
-// 辅助函数：检查视口边界
+// 辅助函数：检查视口边界（left、top 为视口坐标）
 function positionPopupWithViewportCheck(popup, left, top) {
   const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
   const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
-  // 确保不会超出视口右侧
-  if (left + popup.offsetWidth > viewportWidth) {
-    left = viewportWidth - popup.offsetWidth - 10;
-  }
+  const width = popup.offsetWidth;
+  const height = popup.offsetHeight;
+  const margin = 10;
 
-  // 确保不会超出视口底部
-  if (top + popup.offsetHeight > viewportHeight) {
-    top = viewportHeight - popup.offsetHeight - 10;
-  }
+  // 限制在视口范围内，保证弹出窗口始终可见
+  const maxLeft = Math.max(margin, viewportWidth - width - margin);
+  const maxTop = Math.max(margin, viewportHeight - height - margin);
 
-  // 确保不会超出视口左侧和顶部
-  left = Math.max(10, left);
-  top = Math.max(10, top);
+  left = Math.min(Math.max(margin, left), maxLeft);
+  top = Math.min(Math.max(margin, top), maxTop);
 
-  popup.style.position = 'absolute';
+  popup.style.position = 'fixed';
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
 }
 
-// 捕获鼠标位置
-document.addEventListener('mousedown', (e) => {
-  window.mouseX = e.clientX;
-  window.mouseY = e.clientY;
-});
+// 捕获鼠标位置（视口坐标）：右键菜单与普通点击都会记录
+function recordMousePosition(e) {
+  window.base64MouseX = e.clientX;
+  window.base64MouseY = e.clientY;
+}
+
+if (!window.base64MouseListenerSet) {
+  window.base64MouseListenerSet = true;
+  document.addEventListener('mousedown', recordMousePosition, true);
+  document.addEventListener('contextmenu', recordMousePosition, true);
+}
